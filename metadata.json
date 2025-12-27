@@ -1,7 +1,9 @@
 {
-  "name": "Copy of AvocatManager Pro - Maroc",
+  "name": "AvocatManager Pro - Maroc",
   "description": "Système complet de gestion de cabinet d'avocat adapté à la procédure marocaine (Mahakim).",
   "requestFramePermissions": [
-    "geolocation"
+    "geolocation",
+    "microphone",
+    "camera"
   ]
 }

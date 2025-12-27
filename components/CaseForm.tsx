@@ -3,12 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Client } from '../types';
 
-const CaseForm: React.FC = () => {
+interface CaseFormProps {
+  initialDossierId?: string | null;
+}
+
+const CaseForm: React.FC<CaseFormProps> = ({ initialDossierId }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState({
     numero_mahakim: '',
     titre_affaire: '',
+    partie_adverse: '',
     type_affaire: 'Civil',
     statut: 'En cours',
     tribunal: '',
@@ -18,8 +24,37 @@ const CaseForm: React.FC = () => {
   });
 
   useEffect(() => {
-    api.getClients().then(setClients).catch(console.error);
-  }, []);
+    loadBaseData();
+  }, [initialDossierId]);
+
+  const loadBaseData = async () => {
+    try {
+      setFetching(true);
+      const clientsData = await api.getClients();
+      setClients(clientsData || []);
+      
+      if (initialDossierId) {
+        const dossier = await api.getDossier(initialDossierId);
+        if (dossier) {
+          setFormData({
+            numero_mahakim: dossier.numero_mahakim || '',
+            titre_affaire: dossier.titre_affaire || '',
+            partie_adverse: dossier.partie_adverse || '',
+            type_affaire: dossier.type_affaire || 'Civil',
+            statut: dossier.statut || 'En cours',
+            tribunal: dossier.tribunal || '',
+            client_id: dossier.client_id?.toString() || '',
+            juge: dossier.juge || '',
+            date_ouverture: dossier.date_ouverture ? new Date(dossier.date_ouverture).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading form data:', error);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,18 +64,24 @@ const CaseForm: React.FC = () => {
     }
     setLoading(true);
     try {
-      await api.addDossier(formData);
-      alert('تم فتح الملف بنجاح وحفظه في النظام');
-      setFormData({
-        numero_mahakim: '',
-        titre_affaire: '',
-        type_affaire: 'Civil',
-        statut: 'En cours',
-        tribunal: '',
-        client_id: '',
-        juge: '',
-        date_ouverture: new Date().toISOString().split('T')[0]
-      });
+      if (initialDossierId) {
+        await api.updateDossier(initialDossierId, formData);
+        alert('تم تحديث بيانات الملف بنجاح');
+      } else {
+        await api.addDossier(formData);
+        alert('تم فتح الملف بنجاح وحفظه في النظام');
+        setFormData({
+          numero_mahakim: '',
+          titre_affaire: '',
+          partie_adverse: '',
+          type_affaire: 'Civil',
+          statut: 'En cours',
+          tribunal: '',
+          client_id: '',
+          juge: '',
+          date_ouverture: new Date().toISOString().split('T')[0]
+        });
+      }
     } catch (error) {
       alert('حدث خطأ أثناء حفظ الملف');
     } finally {
@@ -56,13 +97,22 @@ const CaseForm: React.FC = () => {
     window.open('https://www.mahakim.ma/Ar/Services/SuiviAffaires_vn/', '_blank');
   };
 
+  if (fetching) {
+    return (
+      <div className="p-20 text-center flex flex-col items-center gap-4">
+        <i className="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500"></i>
+        <span className="font-bold text-slate-400">جاري تحميل بيانات الملف...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="w3-card-4 bg-white">
         <header className="w3-container bg-emerald-50 p-6 border-b flex justify-between items-center">
           <h3 className="font-bold text-emerald-800 flex items-center gap-2 m-0">
-            <i className="fa-solid fa-folder-plus"></i>
-            فتح ملف قضائي جديد (مرتبط بمحاكم)
+            <i className={`fa-solid ${initialDossierId ? 'fa-folder-open' : 'fa-folder-plus'}`}></i>
+            {initialDossierId ? 'تعديل بيانات الملف القضائي' : 'فتح ملف قضائي جديد (مرتبط بمحاكم)'}
           </h3>
           <button 
             type="button"
@@ -126,6 +176,20 @@ const CaseForm: React.FC = () => {
 
             <div className="flex items-center gap-4">
               <label className="min-w-[160px] flex items-center gap-2 font-bold text-gray-700">
+                <i className="fa-solid fa-users-slash text-rose-500"></i>
+                <span>الطرف الخصم</span>
+              </label>
+              <input 
+                type="text" 
+                className="flex-1 border-b border-gray-300 focus:border-emerald-500 outline-none py-2 transition-colors"
+                placeholder="اسم الطرف المقابل في النزاع..."
+                value={formData.partie_adverse}
+                onChange={(e) => setFormData({...formData, partie_adverse: e.target.value})}
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="min-w-[160px] flex items-center gap-2 font-bold text-gray-700">
                 <i className="fa-solid fa-landmark text-emerald-600"></i>
                 <span>المحكمة</span>
               </label>
@@ -183,12 +247,28 @@ const CaseForm: React.FC = () => {
                 onChange={(e) => setFormData({...formData, date_ouverture: e.target.value})}
               />
             </div>
+
+            <div className="flex items-center gap-4">
+              <label className="min-w-[160px] flex items-center gap-2 font-bold text-gray-700">
+                <i className="fa-solid fa-circle-info text-emerald-600"></i>
+                <span>حالة الملف</span>
+              </label>
+              <select 
+                className="flex-1 border-b border-gray-300 focus:border-emerald-500 outline-none py-2 bg-transparent transition-colors font-bold text-amber-600"
+                value={formData.statut}
+                onChange={(e) => setFormData({...formData, statut: e.target.value as any})}
+              >
+                <option value="En cours">قيد المعالجة</option>
+                <option value="Jugé">محكوم</option>
+                <option value="Archivé">مؤرشف</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex justify-between items-center pt-8 border-t border-gray-100">
             <button 
               type="reset" 
-              onClick={() => setFormData({numero_mahakim: '', titre_affaire: '', type_affaire: 'Civil', statut: 'En cours', tribunal: '', client_id: '', juge: '', date_ouverture: new Date().toISOString().split('T')[0]})}
+              onClick={() => setFormData({numero_mahakim: '', titre_affaire: '', partie_adverse: '', type_affaire: 'Civil', statut: 'En cours', tribunal: '', client_id: '', juge: '', date_ouverture: new Date().toISOString().split('T')[0]})}
               className="text-gray-400 hover:text-rose-500 transition font-bold text-sm"
             >
               <i className="fa-solid fa-trash-can ml-1"></i>
@@ -200,7 +280,7 @@ const CaseForm: React.FC = () => {
               className="bg-emerald-600 text-white px-10 py-4 rounded-xl shadow-xl shadow-emerald-200 hover:bg-emerald-700 transform hover:-translate-y-1 transition duration-200 flex items-center gap-3 font-bold"
             >
               <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
-              {loading ? 'جاري الحفظ...' : 'فتح الملف وحفظ البيانات'}
+              {loading ? 'جاري الحفظ...' : (initialDossierId ? 'تحديث بيانات الملف' : 'فتح الملف وحفظ البيانات')}
             </button>
           </div>
         </form>

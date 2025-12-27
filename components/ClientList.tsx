@@ -3,10 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Client } from '../types';
 
-const ClientList: React.FC = () => {
+interface ClientListProps {
+  onEditClient?: (clientId: string) => void;
+}
+
+const ClientList: React.FC<ClientListProps> = ({ onEditClient }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -14,12 +20,27 @@ const ClientList: React.FC = () => {
 
   const loadClients = async () => {
     try {
+      setLoading(true);
       const data = await api.getClients();
-      setClients(data);
+      setClients(data || []);
     } catch (error) {
       console.error('Error loading clients:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.deleteClient(deleteId);
+      setDeleteId(null);
+      await loadClients();
+    } catch (error) {
+      alert('حدث خطأ أثناء محاولة الحذف');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -30,6 +51,7 @@ const ClientList: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Search Bar */}
       <div className="w3-card-4 bg-white p-6 rounded-xl border-r-4 border-indigo-500 shadow-sm transition-all hover:shadow-md">
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="flex items-center gap-4 flex-1 w-full">
@@ -51,6 +73,7 @@ const ClientList: React.FC = () => {
         </div>
       </div>
 
+      {/* Clients Table */}
       <div className="w3-card-4 bg-white rounded-xl overflow-hidden shadow-lg">
         <header className="w3-container w3-indigo p-4 flex justify-between items-center">
           <h3 className="font-bold flex items-center gap-2 m-0 text-white">
@@ -60,7 +83,7 @@ const ClientList: React.FC = () => {
         </header>
         <div className="w3-container p-0">
           <div className="overflow-x-auto">
-            {loading ? (
+            {loading && !clients.length ? (
               <div className="p-10 text-center text-slate-400">جاري تحميل البيانات...</div>
             ) : (
               <table className="w-full text-right border-collapse">
@@ -84,10 +107,18 @@ const ClientList: React.FC = () => {
                       <td className="p-4 text-gray-500 text-sm italic">{client.email}</td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                          <button className="w3-button w3-tiny w3-blue w3-round p-2" title="تعديل">
+                          <button 
+                            onClick={() => onEditClient?.(client.id.toString())}
+                            className="w3-button w3-tiny w3-blue w3-round p-2" 
+                            title="تعديل"
+                          >
                             <i className="fa-solid fa-pen-to-square"></i>
                           </button>
-                          <button className="w3-button w3-tiny w3-red w3-round p-2" title="حذف">
+                          <button 
+                            onClick={() => setDeleteId(client.id.toString())}
+                            className="w3-button w3-tiny w3-red w3-round p-2" 
+                            title="حذف"
+                          >
                             <i className="fa-solid fa-trash"></i>
                           </button>
                         </div>
@@ -108,6 +139,41 @@ const ClientList: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="w3-modal flex items-center justify-center bg-black/50 fixed inset-0 z-[100] p-4" style={{display: 'flex'}}>
+          <div className="w3-modal-content w3-animate-top bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <header className="bg-rose-50 p-4 border-b flex items-center gap-3">
+              <i className="fa-solid fa-triangle-exclamation text-rose-500 text-xl"></i>
+              <h3 className="font-bold text-rose-900 m-0">تأكيد الحذف</h3>
+            </header>
+            <div className="p-6 text-right">
+              <p className="text-slate-700 font-medium leading-relaxed">
+                هل أنت متأكد أنك تريد حذف هذا الموكل وجميع القضايا المرتبطة به؟
+              </p>
+              <p className="text-xs text-rose-400 mt-2 font-bold">هذا الإجراء نهائي ولا يمكن التراجع عنه.</p>
+            </div>
+            <footer className="bg-slate-50 p-4 flex justify-end gap-3 border-t">
+              <button 
+                onClick={() => setDeleteId(null)}
+                disabled={deleting}
+                className="px-6 py-2 rounded-lg font-bold text-slate-500 hover:bg-slate-200 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-6 py-2 bg-rose-600 text-white rounded-lg font-bold shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all flex items-center gap-2"
+              >
+                {deleting ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-trash"></i>}
+                تأكيد الحذف النهائي
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

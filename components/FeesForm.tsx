@@ -13,20 +13,23 @@ const FeesForm: React.FC<FeesFormProps> = ({ initialDossierId }) => {
     dossier_id: '',
     montant_total: '',
     avance: '',
+    taxes: '0', // الرسوم القضائية
   });
+
+  const TVA_RATE = 0.10; // 10%
 
   useEffect(() => {
     api.getDossiers().then(data => {
       setDossiers(data);
       if (initialDossierId) {
         setFormData(prev => ({ ...prev, dossier_id: initialDossierId }));
-        // إذا وجدنا الملف في القائمة، يمكننا محاولة جلب مبالغه الحالية إذا كانت موجودة
         const selected = data.find(d => d.id.toString() === initialDossierId.toString());
         if (selected) {
           setFormData(prev => ({
             ...prev,
-            montant_total: selected.montant_total || '',
-            avance: selected.avance || ''
+            montant_total: selected.montant_total?.toString() || '',
+            avance: selected.avance?.toString() || '',
+            taxes: selected.taxes?.toString() || '0'
           }));
         }
       }
@@ -39,8 +42,8 @@ const FeesForm: React.FC<FeesFormProps> = ({ initialDossierId }) => {
     setLoading(true);
     try {
       await api.updateFees(formData);
-      alert('تم تسجيل الدفعة بنجاح وتحديث البيانات المالية للملف');
-      setFormData({ dossier_id: '', montant_total: '', avance: '' });
+      alert('تم تحديث البيانات المالية للملف بنجاح (مع احتساب الضريبة والرسوم)');
+      setFormData({ dossier_id: '', montant_total: '', avance: '', taxes: '0' });
     } catch (error) {
       alert('حدث خطأ أثناء التحديث المالي');
     } finally {
@@ -48,31 +51,37 @@ const FeesForm: React.FC<FeesFormProps> = ({ initialDossierId }) => {
     }
   };
 
+  const calculateTVA = () => parseFloat(formData.montant_total || '0') * TVA_RATE;
+  const calculateTotalTTC = () => {
+    const ht = parseFloat(formData.montant_total || '0');
+    const tva = ht * TVA_RATE;
+    const taxes = parseFloat(formData.taxes || '0');
+    return ht + tva + taxes;
+  };
+
   return (
     <div className="max-w-4xl mx-auto" dir="rtl">
-      {initialDossierId && (
-        <div className="mb-4 bg-rose-50 border border-rose-200 p-3 rounded-lg text-rose-800 text-sm font-bold flex items-center gap-3">
-          <i className="fa-solid fa-money-bill-transfer"></i>
-          تعديل الوضع المالي للملف المختار من القائمة.
-        </div>
-      )}
-      <div className="w3-card-4 bg-white rounded-xl overflow-hidden shadow-xl border-t-4 border-rose-500">
-        <header className="w3-container bg-rose-50 p-6 border-b">
-          <h3 className="font-bold text-rose-800 flex items-center gap-2 m-0">
-            <i className="fa-solid fa-receipt text-2xl"></i>
-            المحاسبة المالية والأتعاب
-          </h3>
+      <div className="w3-card-4 bg-white rounded-3xl overflow-hidden shadow-2xl border-t-8 border-rose-500">
+        <header className="bg-rose-50 p-8 border-b flex justify-between items-center">
+          <div className="flex items-center gap-4">
+             <div className="w-14 h-14 bg-rose-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                <i className="fa-solid fa-receipt text-2xl"></i>
+             </div>
+             <div>
+                <h3 className="font-black text-rose-900 m-0 text-xl">المحاسبة المالية والأتعاب</h3>
+                <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest">التوافق الضريبي المغربي (TVA 10%)</p>
+             </div>
+          </div>
         </header>
 
-        <form onSubmit={handleSubmit} className="w3-container p-10 space-y-8">
-          {/* File Selection */}
+        <form onSubmit={handleSubmit} className="p-10 space-y-10">
           <div className="flex items-center gap-4">
             <label className="min-w-[180px] flex items-center gap-2 font-bold text-slate-700">
               <i className="fa-solid fa-folder-tree text-rose-500"></i>
               <span>الملف القضائي:</span>
             </label>
             <select 
-              className="flex-1 border-b-2 border-slate-100 focus:border-rose-500 outline-none py-2 bg-transparent transition-all font-bold text-indigo-800"
+              className="flex-1 border-b-2 border-slate-100 focus:border-rose-500 outline-none py-3 bg-transparent transition-all font-bold text-indigo-800 text-lg"
               value={formData.dossier_id}
               onChange={(e) => setFormData({...formData, dossier_id: e.target.value})}
               required
@@ -84,80 +93,81 @@ const FeesForm: React.FC<FeesFormProps> = ({ initialDossierId }) => {
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Total Amount */}
-            <div className="flex items-center gap-4">
-              <label className="min-w-[180px] flex items-center gap-2 font-bold text-slate-700">
-                <i className="fa-solid fa-money-bill-wave text-rose-500"></i>
-                <span>إجمالي الأتعاب:</span>
-              </label>
-              <div className="flex-1 flex items-center border-b-2 border-slate-100 focus-within:border-rose-500 transition-all">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">أتعاب المحامي (HT)</label>
+              <div className="flex items-center border-b-2 border-slate-100 focus-within:border-rose-500 transition-all group">
+                <i className="fa-solid fa-scale-balanced ml-3 text-slate-300 group-focus-within:text-rose-500"></i>
                 <input 
                   type="number" 
-                  className="w-full outline-none py-2 bg-transparent text-lg font-mono font-bold text-slate-800"
+                  className="w-full outline-none py-3 bg-transparent text-2xl font-black text-slate-800"
                   placeholder="0.00"
                   value={formData.montant_total}
                   onChange={(e) => setFormData({...formData, montant_total: e.target.value})}
                   required
                 />
-                <span className="text-xs font-bold text-slate-400 mr-2">د.م</span>
+                <span className="text-xs font-black text-slate-400 mr-2">د.م</span>
               </div>
             </div>
 
-            {/* Advance Payment */}
-            <div className="flex items-center gap-4">
-              <label className="min-w-[180px] flex items-center gap-2 font-bold text-slate-700">
-                <i className="fa-solid fa-hand-holding-dollar text-rose-500"></i>
-                <span>المبلغ المؤدى (تسبيق):</span>
-              </label>
-              <div className="flex-1 flex items-center border-b-2 border-slate-100 focus-within:border-rose-500 transition-all">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">الرسوم القضائية / المصاريف</label>
+              <div className="flex items-center border-b-2 border-slate-100 focus-within:border-rose-500 transition-all group">
+                <i className="fa-solid fa-landmark ml-3 text-slate-300 group-focus-within:text-rose-500"></i>
                 <input 
                   type="number" 
-                  className="w-full outline-none py-2 bg-transparent text-lg font-mono font-bold text-emerald-600"
+                  className="w-full outline-none py-3 bg-transparent text-2xl font-black text-slate-800"
+                  placeholder="0.00"
+                  value={formData.taxes}
+                  onChange={(e) => setFormData({...formData, taxes: e.target.value})}
+                />
+                <span className="text-xs font-black text-slate-400 mr-2">د.م</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">المبلغ المؤدى (تسبيق)</label>
+              <div className="flex items-center border-b-2 border-slate-100 focus-within:border-emerald-500 transition-all group">
+                <i className="fa-solid fa-hand-holding-dollar ml-3 text-slate-300 group-focus-within:text-emerald-500"></i>
+                <input 
+                  type="number" 
+                  className="w-full outline-none py-3 bg-transparent text-2xl font-black text-emerald-600"
                   placeholder="0.00"
                   value={formData.avance}
                   onChange={(e) => setFormData({...formData, avance: e.target.value})}
                 />
-                <span className="text-xs font-bold text-slate-400 mr-2">د.م</span>
+                <span className="text-xs font-black text-slate-400 mr-2">د.م</span>
               </div>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col justify-center">
+               <div className="flex justify-between items-center text-xs font-bold text-slate-500 mb-2">
+                  <span>الضريبة (TVA 10%):</span>
+                  <span className="text-rose-500">+{calculateTVA().toLocaleString()} د.م</span>
+               </div>
+               <div className="flex justify-between items-center text-lg font-black text-slate-800">
+                  <span>المجموع TTC:</span>
+                  <span className="text-2xl text-slate-900">{calculateTotalTTC().toLocaleString()} د.م</span>
+               </div>
             </div>
           </div>
 
-          {/* Calculations Summary */}
-          {formData.montant_total && (
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">المبلغ الإجمالي</p>
-                <p className="text-xl font-black text-slate-800">{parseFloat(formData.montant_total || '0').toLocaleString()} د.م</p>
-              </div>
-              <div className="text-2xl text-slate-200">
-                <i className="fa-solid fa-minus"></i>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">المبلغ المدفوع</p>
-                <p className="text-xl font-black text-emerald-600">{parseFloat(formData.avance || '0').toLocaleString()} د.م</p>
-              </div>
-              <div className="text-2xl text-slate-200">
-                <i className="fa-solid fa-equals"></i>
-              </div>
-              <div className="text-center bg-white px-6 py-2 rounded-xl shadow-sm border border-rose-100">
-                <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">الباقي بذمة الموكل</p>
-                <p className="text-xl font-black text-rose-600">
-                  {(parseFloat(formData.montant_total || '0') - parseFloat(formData.avance || '0')).toLocaleString()} د.م
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end pt-8 border-t border-slate-50">
-            <button 
-              type="submit"
-              disabled={loading}
-              className={`bg-rose-600 text-white px-10 py-4 rounded-xl shadow-xl shadow-rose-100 hover:bg-rose-700 transition transform hover:-translate-y-1 flex items-center gap-3 font-bold ${loading ? 'opacity-50' : ''}`}
-            >
-              <i className={`fa-solid ${loading ? 'fa-circle-notch fa-spin' : 'fa-check-double'}`}></i>
-              {loading ? 'جاري المعالجة...' : 'تسجيل وتحديث الحالة المالية'}
-            </button>
+          <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
+             <div className="flex justify-between items-center relative z-10">
+                <div className="space-y-1">
+                   <p className="text-[10px] font-black text-rose-300 uppercase tracking-widest">الباقي بذمة الموكل</p>
+                   <p className="text-4xl font-black text-white">{(calculateTotalTTC() - parseFloat(formData.avance || '0')).toLocaleString()} <span className="text-sm">د.م</span></p>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className="bg-white text-slate-900 px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-rose-50 transition-all transform active:scale-95 flex items-center gap-3"
+                >
+                  {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-check-double text-rose-600"></i>}
+                  تأكيد التحديث المالي
+                </button>
+             </div>
           </div>
         </form>
       </div>
