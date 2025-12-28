@@ -32,7 +32,7 @@ const StaffManager: React.FC = () => {
       <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
         <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3">
           <i className="fa-solid fa-users-gear text-indigo-500"></i>
-          إدارة فريق عمل المكتب
+          إدارة فريق عمل المكتب والمهام
         </h3>
 
         <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-10 pb-10 border-b border-slate-50">
@@ -56,7 +56,6 @@ const StaffManager: React.FC = () => {
             >
               <option value="Avocat Principal">محامٍ رئيسي</option>
               <option value="Avocat">محامٍ</option>
-              <option value="Avocat Stagiaire">محامٍ متمرن</option>
               <option value="Secrétaire">مساعد(ة) إداري(ة)</option>
               <option value="Clerc">كاتب(ة) المحاماة</option>
             </select>
@@ -80,8 +79,8 @@ const StaffManager: React.FC = () => {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-slate-900 text-[10px] font-black text-white uppercase tracking-widest">
-                <th className="p-5">العضو المزاول</th>
-                <th className="p-5">الدور الوظيفي</th>
+                <th className="p-5">العضو</th>
+                <th className="p-5">الدور</th>
                 <th className="p-5">المهام الجارية (بصفة محرر)</th>
                 <th className="p-5 text-center">الحالة</th>
               </tr>
@@ -93,47 +92,38 @@ const StaffManager: React.FC = () => {
                   <tr key={member.id} className="hover:bg-indigo-50/30 transition-colors group bg-white">
                     <td className="p-5 border-l border-slate-50">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-lg transform group-hover:rotate-6 transition-all" style={{ backgroundColor: member.color }}>
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-lg" style={{ backgroundColor: member.color }}>
                           {member.name.charAt(0)}
                         </div>
                         <div>
                            <p className="font-black text-slate-800 text-sm">{member.name}</p>
-                           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">رقم المعرف: #{member.id}</p>
+                           <p className="text-[9px] text-slate-400 font-bold">معرف: #{member.id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="p-5">
-                      <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 uppercase">{member.role}</span>
+                    <td className="p-5 font-bold text-xs text-indigo-600">
+                      {member.role}
                     </td>
                     <td className="p-5">
-                      <div className="flex flex-wrap gap-2 max-w-md">
+                      <div className="flex flex-wrap gap-2">
                         {assignedTasks.length > 0 ? assignedTasks.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 bg-white border border-slate-100 px-3 py-1.5 rounded-xl shadow-sm hover:border-indigo-300 transition-all cursor-default group/task">
+                          <div key={t.id} className="bg-white border border-slate-200 px-3 py-1 rounded-lg shadow-sm flex items-center gap-2">
                             <i className="fa-solid fa-pen-nib text-[10px] text-indigo-400"></i>
                             <span className="text-[10px] font-bold text-slate-600">{t.title}</span>
                           </div>
                         )) : (
-                          <span className="text-[10px] text-slate-300 font-medium italic">لا توجد مهام قيد المعالجة</span>
+                          <span className="text-[10px] text-slate-300 italic font-medium">لا توجد مهام حالية</span>
                         )}
                       </div>
                     </td>
                     <td className="p-5 text-center">
-                      <div className="flex items-center justify-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 w-fit mx-auto">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-[9px] font-black text-emerald-600 uppercase">نشط</span>
-                      </div>
+                      <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black px-2 py-1 rounded-full border border-emerald-100 uppercase">نشط</span>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {staff.length === 0 && !loading && (
-            <div className="p-20 text-center text-slate-400 flex flex-col items-center gap-4">
-               <i className="fa-solid fa-user-slash text-5xl opacity-20"></i>
-               <p className="font-bold">لا يوجد طاقم عمل مسجل في النظام</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

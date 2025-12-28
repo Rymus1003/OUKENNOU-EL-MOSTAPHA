@@ -5,9 +5,10 @@ import { Client } from '../types';
 
 interface ClientListProps {
   onEditClient?: (clientId: string) => void;
+  onAddClient?: () => void;
 }
 
-const ClientList: React.FC<ClientListProps> = ({ onEditClient }) => {
+const ClientList: React.FC<ClientListProps> = ({ onEditClient, onAddClient }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,9 +52,9 @@ const ClientList: React.FC<ClientListProps> = ({ onEditClient }) => {
 
   return (
     <div className="space-y-6">
-      {/* Search Bar */}
+      {/* Search Bar & Action Button */}
       <div className="w3-card-4 bg-white p-6 rounded-xl border-r-4 border-indigo-500 shadow-sm transition-all hover:shadow-md">
-        <div className="flex flex-col md:flex-row items-center gap-4">
+        <div className="flex flex-col md:flex-row items-center gap-6">
           <div className="flex items-center gap-4 flex-1 w-full">
             <label className="min-w-[150px] flex items-center gap-2 font-bold text-slate-700">
               <i className="fa-solid fa-magnifying-glass text-indigo-500"></i>
@@ -67,19 +68,27 @@ const ClientList: React.FC<ClientListProps> = ({ onEditClient }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="text-xs text-slate-400 font-medium">
-            نتائج البحث: <span className="text-indigo-600 font-bold">{filteredClients.length}</span>
-          </div>
+          
+          <button 
+            onClick={onAddClient}
+            className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center gap-2 shrink-0"
+          >
+            <i className="fa-solid fa-user-plus"></i>
+            إضافة موكل جديد
+          </button>
         </div>
       </div>
 
       {/* Clients Table */}
       <div className="w3-card-4 bg-white rounded-xl overflow-hidden shadow-lg">
         <header className="w3-container w3-indigo p-4 flex justify-between items-center">
-          <h3 className="font-bold flex items-center gap-2 m-0 text-white">
+          <div className="flex items-center gap-2 text-white">
             <i className="fa-solid fa-users-viewfinder"></i>
-            قائمة الموكلين المسجلين
-          </h3>
+            <h3 className="font-bold m-0 text-white">قائمة الموكلين المسجلين</h3>
+          </div>
+          <div className="text-[10px] text-indigo-100 font-bold uppercase tracking-widest">
+            إجمالي السجلات: {clients.length}
+          </div>
         </header>
         <div className="w3-container p-0">
           <div className="overflow-x-auto">

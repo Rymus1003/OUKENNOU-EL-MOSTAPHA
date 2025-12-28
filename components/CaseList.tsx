@@ -10,6 +10,7 @@ const CaseList: React.FC<CaseListProps> = ({ onQuickAction }) => {
   const [dossiers, setDossiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterTribunal, setFilterTribunal] = useState('');
 
   useEffect(() => {
     loadDossiers();
@@ -125,25 +126,50 @@ const CaseList: React.FC<CaseListProps> = ({ onQuickAction }) => {
 
   const filteredDossiers = dossiers.filter(d => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       (d.numero_mahakim && d.numero_mahakim.toLowerCase().includes(term)) || 
       (d.titre_affaire && d.titre_affaire.toLowerCase().includes(term)) ||
       (d.client_name && d.client_name.toLowerCase().includes(term))
     );
+    const matchesTribunal = filterTribunal ? d.tribunal === filterTribunal : true;
+    return matchesSearch && matchesTribunal;
   });
+
+  const uniqueTribunals = Array.from(new Set(dossiers.map(d => d.tribunal).filter(Boolean)));
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
       <div className="w3-card-4 bg-white p-6 rounded-xl border-r-4 border-indigo-500 shadow-sm flex flex-col md:flex-row items-center gap-4 transition-all hover:shadow-md">
-        <div className="flex items-center gap-4 flex-1 w-full">
-          <i className="fa-solid fa-magnifying-glass text-indigo-500"></i>
-          <input 
-            type="text" 
-            className="flex-1 border-b-2 border-slate-100 focus:border-indigo-500 outline-none py-2 bg-transparent font-medium transition-colors"
-            placeholder="البحث باسم الموكل، رقم الملف، أو موضوع القضية..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row items-center gap-4 flex-1 w-full">
+          <div className="flex items-center gap-4 flex-1 w-full">
+            <i className="fa-solid fa-magnifying-glass text-indigo-500"></i>
+            <input 
+              type="text" 
+              className="flex-1 border-b-2 border-slate-100 focus:border-indigo-500 outline-none py-2 bg-transparent font-medium transition-colors"
+              placeholder="البحث باسم الموكل، رقم الملف، أو موضوع القضية..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 shrink-0">
+            <i className="fa-solid fa-landmark text-indigo-400"></i>
+            <select 
+              className="bg-transparent border-none outline-none text-xs font-bold text-slate-600 cursor-pointer min-w-[150px]"
+              value={filterTribunal}
+              onChange={(e) => setFilterTribunal(e.target.value)}
+            >
+              <option value="">كل المحاكم</option>
+              {uniqueTribunals.map(t => (
+                <option key={t as string} value={t as string}>{t as string}</option>
+              ))}
+            </select>
+            {filterTribunal && (
+              <button onClick={() => setFilterTribunal('')} className="text-slate-400 hover:text-rose-500 transition-colors">
+                <i className="fa-solid fa-circle-xmark"></i>
+              </button>
+            )}
+          </div>
         </div>
         <div className="text-xs text-slate-400 font-bold bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
           عدد الملفات: <span className="text-indigo-600">{filteredDossiers.length}</span>
@@ -175,6 +201,10 @@ const CaseList: React.FC<CaseListProps> = ({ onQuickAction }) => {
                       <td className="p-5">
                         <div className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded inline-block">{d.numero_mahakim}</div>
                         <div className="font-bold text-slate-800 text-sm mt-1">{d.titre_affaire}</div>
+                        <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                          <i className="fa-solid fa-landmark text-[9px]"></i>
+                          {d.tribunal}
+                        </div>
                       </td>
                       <td className="p-5">
                         <div className="flex flex-col">

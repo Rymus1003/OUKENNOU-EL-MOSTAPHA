@@ -8,6 +8,16 @@ export interface Client {
   email: string;
 }
 
+export interface Procedure {
+  id: number;
+  dossier_id: number;
+  type: string; // مثال: مقال موضوع، حجز تحفظي، أمر بالأداء
+  date_debut: string;
+  statut: 'جارية' | 'منتهية' | 'متوقفة';
+  juge_rapporteur?: string;
+  numero_ordre?: string; // الرقم الترتيبي في المحكمة
+}
+
 export interface Dossier {
   id: number;
   numero_mahakim: string;
@@ -18,7 +28,7 @@ export interface Dossier {
   client_id: number;
   tribunal: string;
   date_ouverture: string;
-  juge: string;
+  procedures?: Procedure[];
   montant_total?: number;
   avance?: number;
   reste?: number;
@@ -27,6 +37,7 @@ export interface Dossier {
 export interface Audience {
   id: number;
   dossier_id: number;
+  procedure_id?: number; // الجلسة مرتبطة بمسطرة معينة
   date_audience: string;
   salle: string;
   juge_audience: string;

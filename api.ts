@@ -1,7 +1,4 @@
 
-const API_BASE_URL = window.location.origin.includes('localhost') ? 'http://localhost:3001/api' : '/api';
-
-// --- مساعدات التخزين المحلي المحاكي (Mock DB) ---
 const mockDB = {
   get: (key: string) => {
     const data = localStorage.getItem(`avocat_pro_${key}`);
@@ -12,220 +9,257 @@ const mockDB = {
   },
   init: () => {
     if (!mockDB.get('clients')) mockDB.set('clients', [
-      { id: 1, nom_complet: 'أحمد العلمي', cin: 'AB123456', telephone: '0661223344', email: 'ahmed@mail.com', adresse: 'شارع الزرقطوني، الدار البيضاء' },
-      { id: 2, nom_complet: 'فاطمة الزهراء الشاوي', cin: 'CD789012', telephone: '0661556677', email: 'fatima@mail.com', adresse: 'حي الرياض، الرباط' }
+      { id: 1, nom_complet: 'أحمد العلمي', cin: 'AB123456', telephone: '0661223344', email: 'ahmed@mail.com', adresse: 'شارع الزرقطوني، الدار البيضاء' }
+    ]);
+    if (!mockDB.get('procedures')) mockDB.set('procedures', [
+      { id: 101, dossier_id: 1, type: 'مقال افتتاحي (الموضوع)', date_debut: '2024-01-10', statut: 'منتهية' },
+      { id: 102, dossier_id: 1, type: 'طلب حجز تحفظي', date_debut: '2024-02-15', statut: 'جارية' },
+      { id: 103, dossier_id: 1, type: 'تبليغ حكم تمهيدي', date_debut: '2024-03-05', statut: 'منتهية' }
     ]);
     if (!mockDB.get('dossiers')) mockDB.set('dossiers', [
-      { id: 1, numero_mahakim: '2024/1201/1', titre_affaire: 'نزاع تجاري - شركة إكس', type_affaire: 'Commercial', statut: 'En cours', tribunal: 'المحكمة التجارية بالدار البيضاء', client_id: 1, client_name: 'أحمد العلمي', client_cin: 'AB123456', juge: 'الأستاذ بناني', montant_total: 15000, avance: 5000, reste: 10000, tva: 1500, taxes: 500, created_at: new Date().toISOString() }
+      { id: 1, numero_mahakim: '2024/1201/1', titre_affaire: 'نزاع تجاري - شركة إكس', type_affaire: 'Commercial', statut: 'En cours', tribunal: 'المحكمة التجارية بالدار البيضاء', client_id: 1, client_name: 'أحمد العلمي', montant_total: 15000, avance: 5000, reste: 10000, created_at: new Date().toISOString() }
     ]);
     if (!mockDB.get('staff')) mockDB.set('staff', [
       { id: 1, name: 'الأستاذ المهني', role: 'Avocat Principal', color: '#4f46e5' },
-      { id: 2, name: 'سارة العلمي', role: 'Secrétaire', color: '#ec4899' },
-      { id: 3, name: 'ياسين بن جلون', role: 'Avocat Stagiaire', color: '#10b981' }
-    ]);
-    if (!mockDB.get('executions')) mockDB.set('executions', [
-      { id: 1, dossier_id: 1, num_execution: '2024/505', huissier: 'الأستاذ المرزوقي', status: 'In progress', last_action: 'تبليغ السند التنفيذي', next_action: 'إجراء الحجز', date: new Date().toISOString() }
+      { id: 2, name: 'سارة العلمي', role: 'Secrétaire', color: '#ec4899' }
     ]);
     if (!mockDB.get('tasks')) mockDB.set('tasks', [
-      { id: 1, dossier_id: 1, title: 'إعداد المذكرة التعقيبية', status: 'pending', deadline: new Date(Date.now() + 172800000).toISOString(), priority: 'high', assigned_to: 1 }
+      { id: 1, dossier_id: 1, title: 'تحضير مذكرات الدفاع', status: 'pending', deadline: new Date().toISOString(), priority: 'high', assigned_to: 1 }
     ]);
-    if (!mockDB.get('ai_drafts')) mockDB.set('ai_drafts', []);
-    if (!mockDB.get('cabinet_settings')) mockDB.set('cabinet_settings', {
-      name: 'مكتب الأستاذ المهني للمحاماة',
-      address: 'شارع محمد الخامس، عمارة النجاح، الدار البيضاء',
-      barreau: 'الدار البيضاء',
-      tva_rate: 10
-    });
+    if (!mockDB.get('audiences')) mockDB.set('audiences', []);
+    if (!mockDB.get('settings')) mockDB.set('settings', { name: 'مكتب الأستاذ المهني', address: 'شارع الزرقطوني، الدار البيضاء', barreau: 'الدار البيضاء', tva_rate: 10, ice: '001234567890012', if: '12345678' });
+    if (!mockDB.get('documents')) mockDB.set('documents', []);
+    if (!mockDB.get('mails')) mockDB.set('mails', []);
+    if (!mockDB.get('executions')) mockDB.set('executions', []);
+    if (!mockDB.get('drafts')) mockDB.set('drafts', []);
   }
 };
 
 mockDB.init();
 
-const handleFetch = async (url: string, options?: RequestInit, fallbackKey?: string) => {
-  try {
-    const response = await fetch(url, options);
-    if (!response.ok) throw new Error('Backend Error');
-    return await response.json();
-  } catch (error) {
-    if (fallbackKey) {
-      if (url.includes('/stats')) {
-        const dossiers = mockDB.get('dossiers') || [];
-        const clients = mockDB.get('clients') || [];
-        const tasks = mockDB.get('tasks') || [];
-        const execs = mockDB.get('executions') || [];
-        const pending = dossiers.reduce((acc: number, d: any) => acc + (d.reste || 0), 0);
-        const collected = dossiers.reduce((acc: number, d: any) => acc + (d.avance || 0), 0);
-        
-        return {
-          active_cases: dossiers.filter((d: any) => d.statut === 'En cours').length,
-          today_hearings: 1,
-          total_clients: clients.length,
-          total_pending_fees: pending,
-          total_collected_fees: collected,
-          pending_tasks: tasks.filter((t: any) => t.status === 'pending').length,
-          active_executions: execs.length
-        };
-      }
-      return mockDB.get(fallbackKey);
-    }
-    return null;
-  }
-};
-
 export const api = {
-  checkConnection: async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
-      const res = await fetch(`${API_BASE_URL}/stats`, { method: 'HEAD', signal: controller.signal });
-      clearTimeout(timeoutId);
-      return res.ok;
-    } catch { return false; }
-  },
+  checkConnection: async () => true,
   
-  getStats: () => handleFetch(`${API_BASE_URL}/stats`, {}, 'stats'),
-  
-  // Clients & Dossiers
-  getClients: () => handleFetch(`${API_BASE_URL}/clients`, {}, 'clients'),
-  getClient: (id: string) => Promise.resolve((mockDB.get('clients') || []).find((c: any) => c.id.toString() === id) || null),
-  addClient: (data: any) => {
-     const clients = mockDB.get('clients') || [];
-     const newClient = {...data, id: Date.now()};
-     mockDB.set('clients', [...clients, newClient]);
-     return Promise.resolve(newClient);
-  },
-  updateClient: (id: string, data: any) => {
-     const clients = mockDB.get('clients') || [];
-     const updated = clients.map((c: any) => c.id.toString() === id ? {...c, ...data} : c);
-     mockDB.set('clients', updated);
-     return Promise.resolve(true);
-  },
-  deleteClient: (id: string) => {
-     const clients = mockDB.get('clients') || [];
-     mockDB.set('clients', clients.filter((c: any) => c.id.toString() !== id));
-     return Promise.resolve(true);
-  },
-  
-  getDossiers: () => handleFetch(`${API_BASE_URL}/dossiers`, {}, 'dossiers'),
-  getDossier: (id: string) => Promise.resolve((mockDB.get('dossiers') || []).find((d: any) => d.id.toString() === id) || null),
-  addDossier: (data: any) => {
-     const dossiers = mockDB.get('dossiers') || [];
-     const newDossier = {...data, id: Date.now(), reste: data.montant_total - data.avance, created_at: new Date().toISOString()};
-     mockDB.set('dossiers', [...dossiers, newDossier]);
-     return Promise.resolve(newDossier);
-  },
-  updateDossier: (id: string, data: any) => {
-     const dossiers = mockDB.get('dossiers') || [];
-     const updated = dossiers.map((d: any) => d.id.toString() === id ? {...d, ...data} : d);
-     mockDB.set('dossiers', updated);
-     return Promise.resolve(true);
-  },
-  updateDossierStatus: (id: string, status: string) => {
-     const dossiers = mockDB.get('dossiers') || [];
-     const updated = dossiers.map((d: any) => d.id.toString() === id ? {...d, statut: status} : d);
-     mockDB.set('dossiers', updated);
-     return Promise.resolve(true);
-  },
-  deleteDossier: (id: string) => {
-     const dossiers = mockDB.get('dossiers') || [];
-     mockDB.set('dossiers', dossiers.filter((d: any) => d.id.toString() !== id));
-     return Promise.resolve(true);
+  getStats: async () => {
+    const dossiers = mockDB.get('dossiers') || [];
+    const audiences = mockDB.get('audiences') || [];
+    const clients = mockDB.get('clients') || [];
+    const tasks = mockDB.get('tasks') || [];
+    const executions = mockDB.get('executions') || [];
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayHearings = audiences.filter((h: any) => h.date_audience && h.date_audience.split('T')[0] === today).length;
+
+    let totalPending = 0;
+    let totalCollected = 0;
+    dossiers.forEach((d: any) => {
+      totalPending += (d.reste || 0);
+      totalCollected += (d.avance || 0);
+    });
+
+    return {
+      active_cases: dossiers.filter((d: any) => d.statut === 'En cours').length,
+      today_hearings: todayHearings,
+      total_clients: clients.length,
+      total_pending_fees: totalPending,
+      total_collected_fees: totalCollected,
+      pending_tasks: tasks.filter((t: any) => t.status === 'pending').length,
+      active_executions: executions.filter((e: any) => e.status === 'In progress').length
+    };
   },
 
-  // AI Drafts History
-  getDrafts: () => Promise.resolve(mockDB.get('ai_drafts') || []),
-  saveDraft: (data: { title: string, content: string, type: string }) => {
-    const drafts = mockDB.get('ai_drafts') || [];
-    const newDraft = { ...data, id: Date.now(), date: new Date().toISOString() };
-    mockDB.set('ai_drafts', [newDraft, ...drafts]);
-    return Promise.resolve(newDraft);
+  getClients: async () => mockDB.get('clients') || [],
+  getClient: async (id: string) => (mockDB.get('clients') || []).find((c: any) => c.id.toString() === id),
+  addClient: async (data: any) => {
+    const list = mockDB.get('clients') || [];
+    const newItem = { ...data, id: Date.now() };
+    mockDB.set('clients', [...list, newItem]);
+    return newItem;
   },
-  deleteDraft: (id: number) => {
-    const drafts = mockDB.get('ai_drafts') || [];
-    mockDB.set('ai_drafts', drafts.filter((d: any) => d.id !== id));
-    return Promise.resolve(true);
+  updateClient: async (id: string, data: any) => {
+    const list = mockDB.get('clients') || [];
+    const updated = list.map((item: any) => item.id.toString() === id.toString() ? { ...item, ...data } : item);
+    mockDB.set('clients', updated);
+    return true;
+  },
+  deleteClient: async (id: string) => {
+    const list = mockDB.get('clients') || [];
+    const filtered = list.filter((item: any) => item.id.toString() !== id.toString());
+    mockDB.set('clients', filtered);
+    return true;
   },
 
-  // Staff, Executions, Audiences, etc.
-  getStaff: () => Promise.resolve(mockDB.get('staff') || []),
-  addStaff: (data: any) => {
+  getDossiers: async () => {
+    const dossiers = mockDB.get('dossiers') || [];
+    const procedures = mockDB.get('procedures') || [];
+    const clients = mockDB.get('clients') || [];
+    return dossiers.map((d: any) => {
+      const client = clients.find((c: any) => c.id.toString() === d.client_id?.toString());
+      return {
+        ...d,
+        client_name: client ? client.nom_complet : 'غير معروف',
+        procedures: procedures.filter((p: any) => p.dossier_id === d.id)
+      };
+    });
+  },
+  getDossier: async (id: string) => {
+    const dossiers = await api.getDossiers();
+    return dossiers.find((d: any) => d.id.toString() === id) || null;
+  },
+  addDossier: async (data: any) => {
+    const list = mockDB.get('dossiers') || [];
+    const newItem = { ...data, id: Date.now(), created_at: new Date().toISOString(), reste: 0, avance: 0, montant_total: 0 };
+    mockDB.set('dossiers', [...list, newItem]);
+    return newItem;
+  },
+  updateDossier: async (id: string, data: any) => {
+    const list = mockDB.get('dossiers') || [];
+    const updated = list.map((item: any) => item.id.toString() === id.toString() ? { ...item, ...data } : item);
+    mockDB.set('dossiers', updated);
+    return true;
+  },
+  updateDossierStatus: async (id: string, status: string) => {
+    const list = mockDB.get('dossiers') || [];
+    const updated = list.map((item: any) => item.id.toString() === id.toString() ? { ...item, statut: status } : item);
+    mockDB.set('dossiers', updated);
+    return true;
+  },
+  deleteDossier: async (id: string) => {
+    const list = mockDB.get('dossiers') || [];
+    const filtered = list.filter((item: any) => item.id.toString() !== id.toString());
+    mockDB.set('dossiers', filtered);
+    return true;
+  },
+
+  updateFees: async (data: any) => {
+    const list = mockDB.get('dossiers') || [];
+    const ht = parseFloat(data.montant_total || '0');
+    const tva = ht * 0.10;
+    const taxes = parseFloat(data.taxes || '0');
+    const ttc = ht + tva + taxes;
+    const avance = parseFloat(data.avance || '0');
+    
+    const updated = list.map((item: any) => 
+      item.id.toString() === data.dossier_id.toString() 
+        ? { ...item, montant_total: ht, avance: avance, taxes: taxes, reste: ttc - avance } 
+        : item
+    );
+    mockDB.set('dossiers', updated);
+    return true;
+  },
+
+  getStaff: async () => mockDB.get('staff') || [],
+  addStaff: async (data: any) => {
     const staff = mockDB.get('staff') || [];
-    const newMember = {...data, id: Date.now()};
+    const newMember = { ...data, id: Date.now() };
     mockDB.set('staff', [...staff, newMember]);
-    return Promise.resolve(newMember);
+    return newMember;
   },
-  getExecutions: () => Promise.resolve(mockDB.get('executions') || []),
-  addExecution: (data: any) => {
-    const execs = mockDB.get('executions') || [];
-    const newExec = {...data, id: Date.now(), date: new Date().toISOString()};
-    mockDB.set('executions', [...execs, newExec]);
-    return Promise.resolve(newExec);
-  },
-  getAudiences: () => handleFetch(`${API_BASE_URL}/audiences`, {}, 'audiences'),
-  addAudience: (data: any) => {
-     const auds = mockDB.get('audiences') || [];
-     const newAud = {...data, id: Date.now()};
-     mockDB.set('audiences', [...auds, newAud]);
-     return Promise.resolve(newAud);
-  },
-  deleteAudience: (id: string) => {
-     const auds = mockDB.get('audiences') || [];
-     mockDB.set('audiences', auds.filter((a: any) => a.id.toString() !== id));
-     return Promise.resolve(true);
-  },
-  getMails: () => Promise.resolve(mockDB.get('mails') || []),
-  addMail: (data: any) => {
-     const mails = mockDB.get('mails') || [];
-     const newMail = {...data, id: Date.now()};
-     mockDB.set('mails', [...mails, newMail]);
-     return Promise.resolve(newMail);
-  },
-  deleteMail: (id: string) => {
-     const mails = mockDB.get('mails') || [];
-     mockDB.set('mails', mails.filter((m: any) => m.id.toString() !== id));
-     return Promise.resolve(true);
-  },
-  getTasks: () => handleFetch(`${API_BASE_URL}/tasks`, {}, 'tasks'),
-  addTask: (data: any) => {
+
+  getTasks: async () => {
     const tasks = mockDB.get('tasks') || [];
-    const newTask = {...data, id: Date.now(), status: 'pending'};
+    const dossiers = mockDB.get('dossiers') || [];
+    return tasks.map((t: any) => {
+      const dossier = dossiers.find((d: any) => d.id.toString() === t.dossier_id?.toString());
+      return { ...t, numero_mahakim: dossier ? dossier.numero_mahakim : '' };
+    });
+  },
+  addTask: async (data: any) => {
+    const tasks = mockDB.get('tasks') || [];
+    const newTask = { ...data, id: Date.now(), status: 'pending' };
     mockDB.set('tasks', [...tasks, newTask]);
-    return Promise.resolve(newTask);
+    return newTask;
   },
-  updateTaskStatus: (id: string, status: string) => {
+  updateTaskStatus: async (id: string, status: string) => {
     const tasks = mockDB.get('tasks') || [];
-    const updated = tasks.map((t: any) => t.id.toString() === id ? {...t, status} : t);
+    const updated = tasks.map((t: any) => t.id.toString() === id ? { ...t, status } : t);
     mockDB.set('tasks', updated);
-    return Promise.resolve(true);
+    return true;
   },
-  updateFees: (data: any) => {
-     const dossiers = mockDB.get('dossiers') || [];
-     const updated = dossiers.map((d: any) => d.id.toString() === data.dossier_id.toString() ? {
-       ...d, 
-       montant_total: parseFloat(data.montant_total), 
-       avance: parseFloat(data.avance),
-       taxes: parseFloat(data.taxes),
-       reste: (parseFloat(data.montant_total) * 1.1) + parseFloat(data.taxes) - parseFloat(data.avance)
-     } : d);
-     mockDB.set('dossiers', updated);
-     return Promise.resolve(true);
+
+  getAudiences: async () => {
+    const audiences = mockDB.get('audiences') || [];
+    const dossiers = await api.getDossiers();
+    return audiences.map((a: any) => {
+      const dossier = dossiers.find((d: any) => d.id.toString() === a.dossier_id?.toString());
+      return {
+        ...a,
+        numero_mahakim: dossier ? dossier.numero_mahakim : '',
+        titre_affaire: dossier ? dossier.titre_affaire : '',
+        tribunal: dossier ? dossier.tribunal : '',
+        client_name: dossier ? dossier.client_name : ''
+      };
+    });
   },
-  getSettings: () => Promise.resolve(mockDB.get('cabinet_settings')),
-  saveSettings: (data: any) => { mockDB.set('cabinet_settings', data); return Promise.resolve(true); },
-  getDocuments: (dossierId?: string) => {
-    const docs = mockDB.get('documents') || [];
-    if (dossierId) return Promise.resolve(docs.filter((d: any) => d.dossier_id.toString() === dossierId.toString()));
-    return Promise.resolve(docs);
+  addAudience: async (data: any) => {
+    const list = mockDB.get('audiences') || [];
+    const newItem = { ...data, id: Date.now() };
+    mockDB.set('audiences', [...list, newItem]);
+    return newItem;
   },
-  addDocument: (data: any) => {
-    const docs = mockDB.get('documents') || [];
-    const newDoc = { ...data, id: Date.now() };
-    mockDB.set('documents', [...docs, newDoc]);
-    return Promise.resolve(newDoc);
+  deleteAudience: async (id: string) => {
+    const list = mockDB.get('audiences') || [];
+    const filtered = list.filter((item: any) => item.id.toString() !== id.toString());
+    mockDB.set('audiences', filtered);
+    return true;
   },
-  deleteDocument: (id: string) => {
-    const docs = mockDB.get('documents') || [];
-    mockDB.set('documents', docs.filter((d: any) => d.id.toString() !== id.toString()));
-    return Promise.resolve(true);
+
+  getSettings: async () => mockDB.get('settings'),
+  saveSettings: async (data: any) => {
+    mockDB.set('settings', data);
+    return true;
   },
+
+  getDocuments: async (dossierId: string) => {
+    const all = mockDB.get('documents') || [];
+    return all.filter((doc: any) => doc.dossier_id.toString() === dossierId.toString());
+  },
+  addDocument: async (data: any) => {
+    const all = mockDB.get('documents') || [];
+    const newItem = { ...data, id: Date.now() };
+    mockDB.set('documents', [...all, newItem]);
+    return newItem;
+  },
+  deleteDocument: async (id: string) => {
+    const all = mockDB.get('documents') || [];
+    const filtered = all.filter((doc: any) => doc.id.toString() !== id.toString());
+    mockDB.set('documents', filtered);
+    return true;
+  },
+
+  getExecutions: async () => mockDB.get('executions') || [],
+  addExecution: async (data: any) => {
+    const all = mockDB.get('executions') || [];
+    const newItem = { ...data, id: Date.now(), status: 'In progress' };
+    mockDB.set('executions', [...all, newItem]);
+    return newItem;
+  },
+
+  getMails: async () => mockDB.get('mails') || [],
+  addMail: async (data: any) => {
+    const list = mockDB.get('mails') || [];
+    const newItem = { ...data, id: Date.now() };
+    mockDB.set('mails', [...list, newItem]);
+    return newItem;
+  },
+  deleteMail: async (id: string) => {
+    const list = mockDB.get('mails') || [];
+    const filtered = list.filter((item: any) => item.id.toString() !== id.toString());
+    mockDB.set('mails', filtered);
+    return true;
+  },
+
+  getDrafts: async () => mockDB.get('drafts') || [],
+  saveDraft: async (data: any) => {
+    const list = mockDB.get('drafts') || [];
+    const newItem = { ...data, id: Date.now() };
+    mockDB.set('drafts', [...list, newItem]);
+    return newItem;
+  },
+  deleteDraft: async (id: number) => {
+    const list = mockDB.get('drafts') || [];
+    const filtered = list.filter((item: any) => item.id !== id);
+    mockDB.set('drafts', filtered);
+    return true;
+  }
 };
