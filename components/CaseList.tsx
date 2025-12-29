@@ -28,6 +28,24 @@ const CaseList: React.FC<CaseListProps> = ({ onQuickAction }) => {
     }
   };
 
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    if (newStatus === 'En cours') {
+      await api.updateDossierStatus(id, newStatus);
+      loadDossiers();
+      return;
+    }
+
+    const statusLabel = newStatus === 'Jugé' ? 'محكوم' : 'مؤرشف';
+    if (window.confirm(`هل أنت متأكد من تغيير حالة الملف إلى "${statusLabel}"؟`)) {
+      try {
+        await api.updateDossierStatus(id, newStatus);
+        await loadDossiers();
+      } catch (error) {
+        alert('حدث خطأ أثناء تحديث حالة الملف');
+      }
+    }
+  };
+
   const handleArchive = async (id: string) => {
     if (window.confirm('هل أنت متأكد من رغبتك في أرشفة هذا الملف؟')) {
       try {
@@ -223,20 +241,22 @@ const CaseList: React.FC<CaseListProps> = ({ onQuickAction }) => {
                         </span>
                       </td>
                       <td className="p-5">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${status.bg} ${status.color} flex items-center gap-1.5 w-fit border border-current`}>
-                            <i className={`fa-solid ${status.icon}`}></i>
-                            {status.label}
-                          </span>
-                          {d.statut !== 'Archivé' && (
-                            <button 
-                              onClick={() => handleArchive(d.id.toString())}
-                              className="text-slate-400 hover:text-rose-500 transition-colors p-1"
-                              title="أرشفة الملف"
-                            >
-                              <i className="fa-solid fa-box-archive text-xs"></i>
-                            </button>
-                          )}
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${status.bg} ${status.color} flex items-center gap-1.5 w-fit border border-current`}>
+                              <i className={`fa-solid ${status.icon}`}></i>
+                              {status.label}
+                            </span>
+                          </div>
+                          <select 
+                            className="bg-slate-50 border border-slate-200 rounded text-[10px] font-black text-slate-500 outline-none p-1 focus:border-indigo-400 cursor-pointer"
+                            value={d.statut}
+                            onChange={(e) => handleStatusChange(d.id.toString(), e.target.value)}
+                          >
+                            <option value="En cours">قيد المعالجة</option>
+                            <option value="Jugé">محكوم</option>
+                            <option value="Archivé">مؤرشف</option>
+                          </select>
                         </div>
                       </td>
                       <td className="p-5">

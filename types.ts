@@ -23,7 +23,7 @@ export interface Dossier {
   numero_mahakim: string;
   titre_affaire: string;
   partie_adverse: string;
-  type_affaire: 'Civil' | 'Penal' | 'Commercial' | 'Famille' | 'Administratif';
+  type_affaire: 'Civil' | 'Penal' | 'Commercial' | 'Famille' | 'Administratif' | 'Social';
   statut: 'En cours' | 'Jugé' | 'Archivé';
   client_id: number;
   tribunal: string;

@@ -156,6 +156,7 @@ const CaseForm: React.FC<CaseFormProps> = ({ initialDossierId }) => {
                 <option value="Commercial">تجاري</option>
                 <option value="Famille">قضاء الأسرة</option>
                 <option value="Administratif">إداري</option>
+                <option value="Social">قضاء الشغل (اجتماعي)</option>
               </select>
             </div>
 
