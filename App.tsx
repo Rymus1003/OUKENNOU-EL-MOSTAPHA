@@ -98,7 +98,7 @@ const App: React.FC = () => {
           <MenuSection label="التنفيذ والأرشيف" />
           <NavItem active={currentView === 'executions'} onClick={() => setCurrentView('executions')} icon="fa-gavel" label="ملفات التنفيذ" />
           <NavItem active={currentView === 'archive'} onClick={() => setCurrentView('archive')} icon="fa-box-archive" label="أرشيف المستندات" />
-          <NavItem active={currentView === 'mails'} onClick={() => setCurrentView('mails'} icon="fa-envelopes-bulk" label="البريد والمراسلات" />
+          <NavItem active={currentView === 'mails'} onClick={() => setCurrentView('mails')}} icon="fa-envelopes-bulk" label="البريد والمراسلات" />
 
           <MenuSection label="أدوات وتقارير" />
           <NavItem active={currentView === 'tools'} onClick={() => setCurrentView('tools')} icon="fa-toolbox" label="حاسبات قانونية" />
